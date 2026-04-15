@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug hello_cross_platform",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/hello_cross_platform",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "MIMode": "gdb",
+      "console": "integratedTerminal",
+      "preLaunchTask": "CMake: Build",
+      "windows": {
+        "type": "cppvsdbg",
+        "program": "${workspaceFolder}/build/Debug/hello_cross_platform.exe"
+      }
+    }
+  ]
+}

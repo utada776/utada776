@@ -1,0 +1,64 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 16,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default",
+      "description": "Default configure preset for the current platform.",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "msvc",
+      "displayName": "Windows MSVC",
+      "description": "Configure with Visual Studio 2022 on Windows.",
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/build-msvc",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "linux-gcc",
+      "displayName": "Linux GCC",
+      "description": "Configure with GCC on Linux.",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "build-default",
+      "displayName": "Build Default",
+      "configurePreset": "default"
+    },
+    {
+      "name": "build-msvc",
+      "displayName": "Build MSVC",
+      "configurePreset": "msvc",
+      "configuration": "Debug"
+    },
+    {
+      "name": "build-linux",
+      "displayName": "Build Linux",
+      "configurePreset": "linux-gcc"
+    }
+  ]
+}
