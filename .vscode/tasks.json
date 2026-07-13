@@ -1,0 +1,204 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "CMake: Configure",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"-S",
+				".",
+				"-B",
+				"build"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "CMake: Build",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"--build",
+				"build"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"dependsOn": "CMake: Configure",
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "CMake: Test",
+			"type": "shell",
+			"command": "ctest",
+			"args": [
+				"--test-dir",
+				"build",
+				"--output-on-failure"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"dependsOn": "CMake: Build",
+			"problemMatcher": []
+		},
+		{
+			"label": "CMake: Configure+Build x64 vcpkg",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"-S",
+				".",
+				"-B",
+				"build-vs2017-x64",
+				"-A",
+				"x64",
+				"-DCMAKE_TOOLCHAIN_FILE=C:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake",
+				"-DVCPKG_TARGET_TRIPLET=x64-windows",
+				"&&",
+				"cmake",
+				"--build",
+				"build-vs2017-x64",
+				"--config",
+				"Release"
+			],
+			"group": "build"
+		},
+		{
+			"label": "vcpkg: Install VTK x64",
+			"type": "shell",
+			"command": "C:/tools/vcpkg/vcpkg.exe",
+			"args": [
+				"install",
+				"vtk:x64-windows"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "vcpkg: Check lock",
+			"type": "shell",
+			"command": "C:/tools/vcpkg/vcpkg.exe",
+			"args": [
+				"list"
+			]
+		},
+		{
+			"label": "Check running build processes",
+			"type": "shell",
+			"command": "pwsh",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-Process vcpkg,ninja,cl,cmake -ErrorAction SilentlyContinue | Select-Object ProcessName,Id,CPU | Sort-Object ProcessName | Format-Table -AutoSize"
+			]
+		},
+		{
+			"label": "Wait VTK then Build x64",
+			"type": "shell",
+			"command": "pwsh",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"& { Wait-Process -Name vcpkg -ErrorAction SilentlyContinue; C:/tools/vcpkg/vcpkg.exe list | findstr /I '^vtk:'; if ($LASTEXITCODE -ne 0) { Write-Error 'vtk:x64-windows not installed yet'; exit 1 }; cmake -S . -B build-vs2017-x64 -A x64 -DCMAKE_TOOLCHAIN_FILE=C:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; cmake --build build-vs2017-x64 --config Release }"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Monitor install/build status",
+			"type": "shell",
+			"command": "pwsh",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$v=Get-Process vcpkg -ErrorAction SilentlyContinue; $n=Get-Process ninja -ErrorAction SilentlyContinue; if($v){'vcpkg=running'} else {'vcpkg=stopped'}; if($n){'ninja=running'} else {'ninja=stopped'}"
+			]
+		},
+		{
+			"label": "Monitor status simple",
+			"type": "shell",
+			"command": "Get-Process vcpkg,ninja -ErrorAction SilentlyContinue | Select-Object ProcessName,Id,CPU | Format-Table -AutoSize"
+		},
+		{
+			"label": "Monitor status simple 2",
+			"type": "shell",
+			"command": "Get-Process vcpkg,ninja -ErrorAction SilentlyContinue | Select-Object ProcessName,Id,CPU,StartTime | Format-Table -AutoSize"
+		},
+		{
+			"label": "Finalize after VTK install",
+			"type": "shell",
+			"command": "$ErrorActionPreference='Stop'; Wait-Process -Name vcpkg -ErrorAction SilentlyContinue; C:/tools/vcpkg/vcpkg.exe list | findstr /I '^vtk:'; if ($LASTEXITCODE -ne 0) { throw 'vtk:x64-windows not installed' }; cmake -S . -B build-vs2017-x64 -A x64 -DCMAKE_TOOLCHAIN_FILE=C:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows; cmake --build build-vs2017-x64 --config Release"
+		},
+		{
+			"label": "Poll VTK progress",
+			"type": "shell",
+			"command": "Get-Process vcpkg,ninja -ErrorAction SilentlyContinue | Select-Object ProcessName,Id,CPU | Sort-Object ProcessName | Format-Table -AutoSize"
+		},
+		{
+			"label": "Poll VTK progress 2",
+			"type": "shell",
+			"command": "Get-Process vcpkg,ninja -ErrorAction SilentlyContinue | Select-Object ProcessName,Id,CPU,StartTime | Sort-Object ProcessName | Format-Table -AutoSize"
+		},
+		{
+			"label": "Check if vcpkg ended",
+			"type": "shell",
+			"command": "if (Get-Process vcpkg -ErrorAction SilentlyContinue) { 'running' } else { 'stopped' }"
+		},
+		{
+			"label": "Poll VTK status",
+			"type": "shell",
+			"command": "if (Get-Process vcpkg -ErrorAction SilentlyContinue) { 'vcpkg=running' } else { 'vcpkg=stopped' }; if (Get-Process ninja -ErrorAction SilentlyContinue) { 'ninja=running' } else { 'ninja=stopped' }"
+		},
+		{
+			"label": "Check vtk installed",
+			"type": "shell",
+			"command": "C:/tools/vcpkg/vcpkg.exe list | findstr /I vtk"
+		},
+		{
+			"label": "Read VTK build log tail",
+			"type": "shell",
+			"command": "Get-Content 'C:/tools/vcpkg/buildtrees/vtk/install-x64-windows-dbg-out.log' -Tail 100 | Out-String"
+		},
+		{
+			"label": "Find VTK build errors",
+			"type": "shell",
+			"command": "Select-String -Path 'C:/tools/vcpkg/buildtrees/vtk/install-x64-windows-dbg-out.log' -Pattern 'error C[0-9]+|FAILED:|fatal error|error LNK' | Select-Object -Last 30 LineNumber,Line | Format-Table -AutoSize -Wrap | Out-String"
+		},
+		{
+			"label": "Resume VTK install editable",
+			"type": "shell",
+			"command": "C:/tools/vcpkg/vcpkg.exe install vtk:x64-windows --editable"
+		},
+		{
+			"label": "Poll build status",
+			"type": "shell",
+			"command": "if (Get-Process vcpkg -ErrorAction SilentlyContinue) { 'vcpkg=running' } else { 'vcpkg=stopped' }; if (Get-Process ninja -ErrorAction SilentlyContinue) { 'ninja=running' } else { 'ninja=stopped' }"
+		},
+		{
+			"label": "Check editable source",
+			"type": "shell",
+			"command": "Test-Path 'C:/tools/vcpkg/buildtrees/vtk/src/aed1b438af-04548971e7/IO/ERF/vtkERFReader.cxx'"
+		},
+		{
+			"label": "Check vtk package installed",
+			"type": "shell",
+			"command": "C:/tools/vcpkg/vcpkg.exe",
+			"args": [
+				"list"
+			]
+		},
+		{
+			"label": "Scan active VTK errors",
+			"type": "shell",
+			"command": "Select-String -Path 'C:/tools/vcpkg/buildtrees/vtk/install-x64-windows-dbg-out.log' -Pattern 'error C[0-9]+|FAILED:|fatal error|error LNK|ninja: build stopped' | Select-Object -Last 20 LineNumber,Line | Format-Table -AutoSize -Wrap | Out-String"
+		},
+		{
+			"label": "Scan active IOERF traces",
+			"type": "shell",
+			"command": "Select-String -Path 'C:/tools/vcpkg/buildtrees/vtk/install-x64-windows-dbg-out.log' -Pattern 'IO/ERF|vtkERFReader|IOERF' | Select-Object -Last 20 LineNumber,Line | Format-Table -AutoSize -Wrap | Out-String"
+		}
+	]
+}
