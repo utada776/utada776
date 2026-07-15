@@ -2,7 +2,9 @@
 // dicom_exporter.cpp
 //
 // DCMTK-based DICOM CT volume export.
-// Compiled only when FDK_HAS_DCMTK=1 (set by CMake when DCMTK is found).
+// The real exporter is compiled only when FDK_HAS_DCMTK=1. Otherwise this file
+// provides a stub with an actionable error message so the GUI can report the
+// missing optional dependency instead of failing to link.
 // ============================================================================
 
 #include "dicom_exporter.h"
@@ -54,7 +56,7 @@ bool ExportFdkVolume(const fdk::Volume3D&  vol,
         return false;
     }
 
-    // Create output directory
+    // Create output directory.
     std::error_code ec;
     std::filesystem::create_directories(out_dir, ec);
     if (ec) {
@@ -62,7 +64,7 @@ bool ExportFdkVolume(const fdk::Volume3D&  vol,
         return false;
     }
 
-    // UIDs shared across the series
+    // UIDs shared across the series.
     const std::string study_uid  = GenUID();
     const std::string series_uid = GenUID();
 
@@ -89,7 +91,7 @@ bool ExportFdkVolume(const fdk::Volume3D&  vol,
     std::vector<Uint16> px_buf(static_cast<std::size_t>(rows * cols));
 
     for (int iz = 0; iz < n_slices; ++iz) {
-        // Convert raw volume values to HU (int16) using scale/offset from params
+        // Convert raw volume values to HU (int16) using scale/offset from params.
         for (int iy = 0; iy < rows; ++iy) {
             for (int ix = 0; ix < cols; ++ix) {
                 const float raw    = vol.at(ix, iy, iz);
@@ -104,7 +106,7 @@ bool ExportFdkVolume(const fdk::Volume3D&  vol,
 
         const std::string sop_uid = GenUID();
 
-        // Image position: centre of volume at (0,0); Z progresses by spacing
+        // Image position: centre of volume at (0,0); Z progresses by spacing.
         const std::string pos_str =
             "0\\0\\" + FmtDS(static_cast<float>(iz) * pixel_spacing_mm);
 
@@ -171,7 +173,7 @@ bool ExportFdkVolume(const fdk::Volume3D&  vol,
             return false;
         }
 
-        // Write file
+        // Write file.
         const std::string fname =
             out_dir + "/IM_" + std::to_string(iz + 1) + ".dcm";
         const OFCondition wcond =

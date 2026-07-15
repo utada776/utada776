@@ -10,7 +10,10 @@ namespace scan_volume {
 // ============================================================================
 // AVS Field / XDR SCAN file loader
 // SCAN file format: ASCII header (key=value, terminated by 0x0C 0x0C)
-//                  followed by big-endian int16 (xdr_short) voxel data
+//                   followed by big-endian int16 (xdr_short) voxel data.
+//
+// The loader maps SCAN storage into vtkImageData for display only; it does not
+// attempt to rewrite or normalize the source .SCAN file on disk.
 // ============================================================================
 
 struct ScanVolumeMetadata {

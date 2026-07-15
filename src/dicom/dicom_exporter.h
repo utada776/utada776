@@ -6,8 +6,9 @@
 // Each axial slice is written as a separate .dcm file.
 //
 // Build requirement:
-//   vcpkg install dcmtk:x64-windows
-//   then reconfigure CMake (FDK_HAS_DCMTK will be defined automatically).
+//   CMake defines FDK_HAS_DCMTK when DCMTK is found. The validated Windows
+//   path uses external/dcmtk/install; vcpkg dcmtk:x64-windows is also usable
+//   when configuring without local dependencies.
 // ============================================================================
 
 #include "FDK recon/fdk_types.h"
@@ -18,7 +19,7 @@ namespace dicom_export {
 /// Export a reconstructed FDK volume as a DICOM CT series.
 ///
 /// @param vol      The reconstructed 3-D volume (raw reconstruction units).
-/// @param params   FDK parameters — voxel_size_cm, scale_out and offset_out
+/// @param params   FDK parameters; voxel_size_cm, scale_out and offset_out
 ///                 are used to convert raw values to HU.
 /// @param out_dir  Output directory. Created if it does not exist.
 /// @param error    Error description on failure.
