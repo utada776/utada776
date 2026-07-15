@@ -1,122 +1,110 @@
-# Windows 安装与使用指南
+# Windows Build And Run Guide
 
-这份文档已经按当前这台机器实际验证过的环境更新。
+This project is validated on Windows with Visual Studio 2017 x64, CMake, wxWidgets, local VTK/DCMTK installs, and an optional local RTK/ITK build tree.
 
-## 已确认可用的环境
+## Requirements
 
-- CMake 已安装：`C:\Program Files\CMake\bin\cmake.exe`
-- CMake 版本：`4.3.1`
-- Visual Studio 已安装：`Visual Studio Professional 2017`
-- MSVC 编译器可用：`19.16.27054`
-- MinGW、`g++`、`clang++` 当前未安装
+- Windows 10/11 x64
+- Visual Studio 2017 or newer with the C++ workload
+- CMake 3.16 or newer
+- PowerShell 5+ or PowerShell 7+
+- Local dependencies under `external/`:
+  - `external/vtk/install/share/vtk/vtk-config.cmake`
+  - `external/dcmtk/install/cmake/DCMTKConfig.cmake`
+  - optional RTK/ITK build trees under `external/rtk/build` and `external/itk/build`
 
-## 当前机器上的关键问题
-
-工具不是没装，而是普通 PowerShell 环境没有自动加载：
-
-- `CMake` 没加入当前终端的 `PATH`
-- `cl` 需要先加载 Visual Studio 的开发者环境
-
-所以你在普通终端里直接输入 `cmake` 或 `cl`，可能会显示找不到命令。
-
-## 已验证通过的构建方式
-
-当前机器已经实际验证过以下流程可以成功完成：
-
-- CMake 配置
-- Release 编译
-- CTest 测试
-- 运行可执行程序
-
-### 方式 1：直接运行一键脚本
-
-项目根目录已经提供：`build.ps1`
-
-在项目目录执行：
+## Recommended Validation Command
 
 ```powershell
-Set-Location "c:\code test"
-PowerShell -ExecutionPolicy Bypass -File .\build.ps1
+cd "C:\code test"
+.\build.ps1 -Configuration Release -NoRun -SkipOfflineBuild
 ```
 
-这个脚本会自动完成：
+This command:
 
-- 查找 `cmake.exe`
-- 查找 `ctest.exe`
-- 查找 Visual Studio 的 `vcvars64.bat`
-- 配置工程
-- 编译 Release
-- 运行测试
-- 执行程序
+1. Checks local VTK and DCMTK installs.
+2. Configures `build-vs2017-x64` with Visual Studio 2017 x64.
+3. Enables unit tests.
+4. Builds all targets needed by CTest.
+5. Runs `ctest -C Release --output-on-failure`.
 
-如果要编译 Debug 版本：
+## Common Build Commands
+
+Build and run tests without launching the GUI:
 
 ```powershell
-PowerShell -ExecutionPolicy Bypass -File .\build.ps1 -Configuration Debug
+.\build.ps1 -Configuration Release -NoRun -SkipOfflineBuild
 ```
 
-### 方式 2：手动执行已验证命令
+Build only the application target:
 
 ```powershell
-cmd /c '"C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\VC\Auxiliary\Build\vcvars64.bat" >nul 2>&1 && "C:\Program Files\CMake\bin\cmake.exe" -S "c:\code test" -B "c:\code test\build-vs2017-x64" -A x64 && "C:\Program Files\CMake\bin\cmake.exe" --build "c:\code test\build-vs2017-x64" --config Release && "C:\Program Files\CMake\bin\ctest.exe" --test-dir "c:\code test\build-vs2017-x64" -C Release --output-on-failure && "c:\code test\build-vs2017-x64\Release\hello_cross_platform.exe" --gui'
+.\build.ps1 -Configuration Release -NoRun -SkipTests -SkipOfflineBuild
 ```
 
-## 如果你想把环境修正得更干净
+Clean rebuild:
 
-### 让 cmake 在普通 PowerShell 里直接可用
+```powershell
+.\build.ps1 -Configuration Release -NoRun -Clean -SkipOfflineBuild
+```
 
-把下面目录加入系统 `PATH`：
+Build and launch the GUI:
+
+```powershell
+.\build.ps1 -Configuration Release -SkipOfflineBuild
+```
+
+## Script Parameters
+
+- `-Configuration Debug|Release`: selects the build configuration. Use `Release` for the current local RTK/ITK cache unless Debug ITK/RTK libraries have been built.
+- `-BuildDirectory <dir>`: selects the CMake build directory. Default is `build-vs2017-x64`.
+- `-NoRun`: skips launching `hello_cross_platform.exe` after build/test.
+- `-Clean`: requests a clean CMake build.
+- `-UseVcpkg`: retained as a compatibility switch; the current script still configures local dependencies by default and adds the vcpkg toolchain when available.
+- `-SkipOfflineBuild`: fails early if local VTK/DCMTK installs are missing.
+- `-SkipTests`: configures `BUILD_TESTING=OFF` and builds only `hello_cross_platform`.
+
+## Manual CMake Commands
+
+```powershell
+cmake -S . -B build-vs2017-x64 -G "Visual Studio 15 2017" -A x64 -DUSE_LOCAL_DEPENDENCIES=ON -DBUILD_TESTING=ON
+cmake --build build-vs2017-x64 --config Release --target ALL_BUILD --parallel 4
+ctest --test-dir build-vs2017-x64 -C Release --output-on-failure
+```
+
+## Output
+
+Application executable:
 
 ```text
-C:\Program Files\CMake\bin
+build-vs2017-x64\Release\hello_cross_platform.exe
 ```
 
-然后重新打开 VS Code 或 PowerShell，再执行：
+## Troubleshooting
+
+### CMake Not Found
+
+Install CMake and ensure `cmake.exe` is on `PATH`, or install it at `C:\Program Files\CMake\bin\cmake.exe`.
+
+### Visual Studio Environment Not Found
+
+Install Visual Studio or Build Tools with the C++ workload. The script searches common `vcvars64.bat` locations for VS 2022, VS 2019, and VS 2017.
+
+### Missing Local VTK/DCMTK
+
+Run the dependency build script if the source packages are available locally:
 
 ```powershell
-cmake --version
+cd external
+.\BUILD_ALL_OFFLINE.ps1
 ```
 
-### 让 cl 更容易使用
+Or rebuild/provide the local install directories listed in the requirements section.
 
-推荐使用以下任意一种终端启动方式：
+### Debug Build Cannot Link ITK/RTK
 
-- Developer PowerShell for Visual Studio 2017
-- x64 Native Tools Command Prompt for VS 2017
-- 或先调用 `vcvars64.bat` 再编译
+The current local RTK/ITK cache is Release-oriented. A Debug build can fail while looking for Debug ITK libraries. Use `-Configuration Release`, or build matching Debug ITK/RTK libraries.
 
-当前已验证存在的开发环境脚本：
+### Runtime DLL Missing
 
-```text
-C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\VC\Auxiliary\Build\vcvars64.bat
-```
-
-## 如果将来需要重装或补装
-
-这台机器也有这些包管理工具：
-
-- `winget`
-- `choco`
-
-安装 CMake：
-
-```powershell
-winget install Kitware.CMake
-```
-
-或：
-
-```powershell
-choco install cmake -y
-```
-
-如果未来要补装更新版 MSVC，优先建议：
-
-```powershell
-winget install Microsoft.VisualStudio.2022.BuildTools
-```
-
-## VS Code 推荐扩展
-
-- `ms-vscode.cpptools`
-- `ms-vscode.cmake-tools`
+Use `build.ps1` so the runtime `PATH` includes local VTK/DCMTK and vcpkg binary directories. To diagnose without launching the GUI, pass `-NoRun`.

@@ -1,7 +1,9 @@
 #include <iostream>
 #include <string>
 
+#if defined(HELLO_HAS_WX) && HELLO_HAS_WX
 #include <wx/wx.h>
+#endif
 
 #include "hello_cross_platform/platform.h"
 
@@ -17,7 +19,13 @@ int main(int argc, char* argv[]) {
     }
 
     if (mode == "gui") {
+#if defined(HELLO_HAS_WX) && HELLO_HAS_WX
         return wxEntry(argc, argv);
+#else
+        std::cout << "GUI mode is unavailable: wxWidgets was not found at configure time." << '\n';
+        std::cout << "Reconfigure with wxWidgets installed to enable --gui." << '\n';
+        return 1;
+#endif
     }
 
     // CLI mode (optional fallback)

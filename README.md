@@ -1,120 +1,102 @@
-# C++ CMake 示例工程（带 GUI 支持）
+# Imaging Studio
 
-这是一个最小可运行的 C++ 工程，使用 CMake 构建，默认支持 Windows 和 Linux。
+Imaging Studio is a C++17 CMake application for medical-image viewing, SCAN/raw volume loading, image registration, and cone-beam CT FDK reconstruction. The Windows build is validated with Visual Studio 2017 x64, wxWidgets, local VTK/DCMTK installs, and an optional local RTK/ITK build tree.
 
-**v2.0 更新：新增 wxWidgets 跨平台 GUI 支持！** 现在支持图形界面预览，同时保留命令行模式。
+## Main Features
 
-## 功能特性
+- wxWidgets desktop GUI with DICOM, RAW, SCAN, FDK reconstruction, registration, PPS demo, and Bean demo entry points.
+- VTK-based DICOM/volume visualization.
+- Optional DCMTK-backed DICOM export.
+- RTK-backed FDK reconstruction when `external/rtk/build` and `external/itk/build` are present.
+- Google Test unit tests for core, viewer validation, GUI style constants, and Bean style constants.
 
-- ✅ 跨平台（Windows / Linux）
-- ✅ CLI 模式：命令行输出平台检测结果
-- ✅ GUI 模式：窗口应用，交互式显示平台信息
-- ✅ Google Test 单元测试
-- ✅ CMake 现代化构建
-- ✅ VS Code 开箱即用
+## Repository Layout
 
 ```text
 .
-|-- .github
-|   `-- workflows
-|       `-- ci.yml
-|-- .vscode
-|   |-- extensions.json
-|   |-- launch.json
-|   `-- tasks.json
-|-- .gitignore
-|-- CMakeLists.txt
-|-- CMakePresets.json
-|-- INSTALL_WINDOWS.md
-|-- build.ps1
-|-- include
-|   `-- hello_cross_platform
-|       `-- platform.h
-|-- README.md
-|-- src
-|   |-- main.cpp
-|   `-- platform.cpp
-`-- tests
-    `-- hello_core_test.cpp
+├── .github/workflows/          # CI workflow
+├── .vscode/                    # VS Code tasks/debug recommendations
+├── build.ps1                   # Windows configure/build/test/run script
+├── build.sh                    # Linux configure/build/test/run script
+├── CMakeLists.txt              # Main CMake project
+├── CMakePresets.json           # Optional CMake presets
+├── include/                    # Public hello_core headers
+├── src/                        # Application source
+│   ├── FDK recon/              # FDK UI, RTK integration, DICOM export
+│   ├── bean/                   # Bean demo
+│   ├── dicom/                  # DICOM, RAW, and SCAN loading/viewing
+│   ├── pps/                    # PPS demo
+│   ├── registration/           # Registration UI and core algorithms
+│   └── volume/                 # RAW/SCAN loader dialogs
+├── tests/                      # Google Test targets
+├── tools/                      # Developer reconstruction/SCAN inspection tools
+└── external/                   # Dependency scripts/docs plus local dependency caches
 ```
 
-## 构建
+The following paths are intentionally not tracked: `dicom data/`, `build-*`, `.deps/`, `external/*/build`, `external/*/install`, and `external/*/src`.
 
-Windows 环境安装可以直接参考 [INSTALL_WINDOWS.md](INSTALL_WINDOWS.md)。
+## Windows Build
 
-如果你在当前这台 Windows 机器上直接使用，最省事的方式是运行：
+Use the project script from PowerShell:
 
 ```powershell
-PowerShell -ExecutionPolicy Bypass -File .\build.ps1
+cd "C:\code test"
+.\build.ps1 -Configuration Release -NoRun -SkipOfflineBuild
 ```
 
-### Windows
-
-如果你安装了 Visual Studio 或 Build Tools：
+The validated build command configures `build-vs2017-x64`, builds all targets when tests are enabled, and runs CTest. To build only the application without tests:
 
 ```powershell
-cmake -S . -B build
-cmake --build build --config Release
-.\build\Release\hello_cross_platform.exe
+.\build.ps1 -Configuration Release -NoRun -SkipTests -SkipOfflineBuild
 ```
 
-如果你使用 MinGW：
+To launch the GUI after a successful build, omit `-NoRun`:
 
 ```powershell
-cmake -S . -B build -G "MinGW Makefiles"
-cmake --build build
-.\build\hello_cross_platform.exe
+.\build.ps1 -Configuration Release -SkipOfflineBuild
 ```
 
-### Linux
+Useful script parameters:
+
+- `-Configuration Debug|Release`: choose build configuration. The current local RTK/ITK dependency cache is Release-oriented; use Release for full RTK builds unless Debug ITK/RTK libraries also exist.
+- `-BuildDirectory <dir>`: override the default `build-vs2017-x64`.
+- `-NoRun`: build/test only, do not launch the GUI.
+- `-Clean`: pass `--clean-first` to the CMake build.
+- `-SkipOfflineBuild`: fail instead of trying to build missing local VTK/DCMTK dependencies.
+- `-SkipTests`: configure with `BUILD_TESTING=OFF` and build only `hello_cross_platform`.
+
+## Tests
+
+CTest is enabled by default in CMake. After configuring/building with tests:
+
+```powershell
+ctest --test-dir build-vs2017-x64 -C Release --output-on-failure
+```
+
+The currently validated local run passes 19 tests.
+
+## Linux Build
+
+Install system dependencies and run:
 
 ```bash
-cmake -S . -B build
-cmake --build build
-./build/hello_cross_platform
+chmod +x build.sh
+./build.sh --configuration Release --no-run
 ```
 
-## 运行测试
+See [UBUNTU_GUI_SETUP.md](UBUNTU_GUI_SETUP.md) for package details and GUI/headless notes.
 
-```powershell
-cmake -S . -B build
-cmake --build build
-ctest --test-dir build --output-on-failure
-```
+## External Dependencies
 
-## 安装
+See [external/README.md](external/README.md) for the local dependency cache layout. The repository should keep dependency scripts and docs, but not generated dependency source/build/install directories.
 
-```powershell
-cmake -S . -B build
-cmake --build build
-cmake --install build --prefix install
-```
+## VS Code Tasks
 
-安装后，头文件会放到 `include/hello_cross_platform`，库文件放到 `lib`，可执行文件放到 `bin`。
+The workspace tasks are intentionally small:
 
-## 持续集成
+- `Configure x64`
+- `Build x64 app`
+- `Test x64`
+- `Verify build.ps1`
 
-仓库已经包含 GitHub Actions 工作流：
-
-- Windows 使用 `windows-latest`
-- Linux 使用 `ubuntu-latest`
-- 每次 push 和 pull request 都会自动执行配置、编译和测试
-
-## VS Code 使用
-
-安装好 CMake 和 C++ 编译器后，可以直接在 VS Code 中使用：
-
-- 运行任务 `CMake: Build` 完成配置和编译。
-- 运行任务 `CMake: Test` 执行基础测试。
-- 使用调试配置 `Debug hello_cross_platform` 启动调试。
-- 也可以使用 `CMakePresets.json` 中的 preset 进行命令行构建。
-- 工作区会推荐安装 C++ 和 CMake 扩展。
-
-## 说明
-
-- 工程使用 C++17。
-- `HELLO_BUILD_SHARED=ON` 时会把 `hello_core` 构建为动态库，否则默认是静态库。
-- `hello_core` 是可复用的基础库，`hello_cross_platform` 是示例可执行程序。
-- 示例程序会输出当前检测到的平台。
-- `tests/hello_core_test.cpp` 是一个最小测试示例，后续可以替换成 GoogleTest 或 Catch2。
-- 当前工作区已经包含基础的 `.vscode` 配置和 `.gitignore`。
+Historical polling/debug tasks were removed to keep the workspace reproducible.

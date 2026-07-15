@@ -1,67 +1,56 @@
-# Windows GUI 环境准备
+# Windows GUI Setup
 
-这个项目现在支持 GUI 应用。在 Windows 上运行需要先装 wxWidgets 3.0。
+The GUI uses wxWidgets for the desktop shell, VTK for image/volume rendering, DCMTK for optional DICOM export, and RTK/ITK for FDK reconstruction when the local RTK backend is available.
 
-## 方案 1：使用 vcpkg（推荐）
+## Dependencies
 
-vcpkg 是 Microsoft 官方维护的 C++ 包管理器，最容易集成到 CMake。
+| Dependency | Purpose | Expected Source |
+| --- | --- | --- |
+| wxWidgets | GUI framework | vcpkg/toolchain or system package config |
+| VTK | DICOM and volume visualization | `external/vtk/install` |
+| DCMTK | Optional DICOM export | `external/dcmtk/install` |
+| RTK/ITK | Optional FDK backend | `external/rtk/build`, `external/itk/build` |
+| Google Test | Unit tests | `.deps/` via CMake FetchContent |
 
-### 1. 安装 vcpkg
+Generated dependency directories are local caches and should not be committed.
 
-```powershell
-git clone https://github.com/Microsoft/vcpkg.git
-cd vcpkg
-.\bootstrap-vcpkg.bat
-```
+## Build And Launch
 
-### 2. 安装 wxWidgets
-
-```powershell
-# x64 only
-.\vcpkg install wxwidgets:x64-windows
-```
-
-> 第一次编译会比较久（20-30 分钟），因为 wxWidgets 源码比较大。
-
-### 3. 集成到项目
-
-运行脚本时指定 vcpkg 工具链：
+Validate the project without starting the GUI:
 
 ```powershell
-# 在项目根目录
-cmake -S . -B build-vcpkg `
-  -DCMAKE_TOOLCHAIN_FILE="C:\path\to\vcpkg\scripts\buildsystems\vcpkg.cmake" `
-  -DVCPKG_TARGET_TRIPLET="x64-windows"
-
-cmake --build build-vcpkg --config Release
+cd "C:\code test"
+.\build.ps1 -Configuration Release -NoRun -SkipOfflineBuild
 ```
 
-或者改造 `build.ps1`，在里面自动加上 `-DCMAKE_TOOLCHAIN_FILE` 参数。
-
-## 方案 2：预编译二进制
-
-从 [wxWidgets 官网](https://wxwidgets.org/downloads/) 下载预编译 Windows 二进制，解压后设置 wxWidgets_ROOT_DIR 环境变量。
-
-## 方案 3：从源码编译（不推荐，比较复杂）
-
-从 GitHub 克隆 wxWidgets，按照其文档编译。
-
----
-
-## 运行 GUI 应用
-
-安装完 wxWidgets 后，运行：
+Launch after a successful build:
 
 ```powershell
-.\build.ps1           # 自动生成 GUI 应用并启动
-.\build.ps1 -Configuration Debug     # Debug 模式
+.\build.ps1 -Configuration Release -SkipOfflineBuild
 ```
 
-或者手工编译和运行：
+Run the executable directly if the required DLL directories are already on `PATH`:
 
 ```powershell
-$executable = "build-vs2017-x64\Release\hello_cross_platform.exe"
-& $executable --gui
+.\build-vs2017-x64\Release\hello_cross_platform.exe --gui
 ```
 
-不带 `--gui` 参数时，会进入命令行模式。
+## GUI Entry Points
+
+- `Load 3D DICOM Folder`: validate and display DICOM image folders.
+- `3D Reconstruction`: open the FDK reconstruction dialog.
+- `Load Raw Volume`: load float/raw binary volume data with user-provided metadata.
+- `Load Scan Volume`: load AVL `.SCAN` volumes.
+- `3D Registration`: open the registration workflow.
+- `Open PPS Demo`: show the PPS movement demo.
+- `Open Bean Game`: show the Bean keyboard demo.
+
+## Tests
+
+The GUI-adjacent tests are built and run by the default Release validation command. They currently cover GUI style constants, Bean style constants, and DICOM directory validation. They do not launch an interactive GUI window.
+
+## Notes
+
+- Prefer `Release` for RTK-enabled local builds unless matching Debug ITK/RTK libraries exist.
+- `build.ps1` prefixes `PATH` with local VTK/DCMTK and vcpkg binary directories before launching the application.
+- The VS Code task `Verify build.ps1` runs the same non-launching validation path.

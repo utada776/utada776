@@ -4,3 +4,23 @@ build-*/
 .vs/
 .vscode/*.db
 CMakeUserPresets.json
+dicom data/
+external/*/build/
+external/*/install/
+external/*/src/
+external/*/*.zip
+external/*/*.tar
+external/*/*.tar.gz
+external/*/*.tgz
+external/*/*.7z
+*.SCAN
+*.mha
+*.mhd
+*.raw
+*.nii
+*.nii.gz
+*.nrrd
+*.png
+*.jpg
+*.jpeg
+*.bmp
